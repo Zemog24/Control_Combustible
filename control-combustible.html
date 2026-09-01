@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Control de Carga de Combustible</title>
+<style>
+  :root{
+    --bg:#F3F5F8;
+    --card-bg:#FFFFFF;
+    --text:#182233;
+    --text-soft:#5B6474;
+    --border:#D9DFE6;
+    --accent:#1D4ED8;
+    --accent-dark:#1730A0;
+    --ok-bg:#E7F8ED;
+    --ok-border:#2FA84F;
+    --ok-text:#1C7A38;
+    --danger:#D6304A;
+    --danger-bg:#FCE9EC;
+    --warn:#B4790D;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;
+    line-height:1.35;
+    padding-bottom:90px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  h1,h2,h3{margin:0;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:20;
+    background:var(--accent-dark);
+    color:#fff;
+    padding:12px 14px;
+  }
+  .topbar h1{font-size:1.05rem;font-weight:700;letter-spacing:.2px;}
+  .topbar .sub{font-size:.78rem;opacity:.85;margin-top:2px;}
+
+  .tabs{
+    display:flex;
+    position:sticky;top:56px;z-index:19;
+    background:#fff;
+    border-bottom:1px solid var(--border);
+  }
+  .tab-btn{
+    flex:1;padding:12px 6px;text-align:center;
+    background:none;border:none;font-weight:600;font-size:.9rem;
+    color:var(--text-soft);border-bottom:3px solid transparent;
+  }
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+  .container{max-width:760px;margin:0 auto;padding:14px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---------- Cards / sections ---------- */
+  .panel{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:14px;
+    margin-bottom:14px;
+  }
+  .panel h2{font-size:.85rem;text-transform:uppercase;letter-spacing:.4px;color:var(--text-soft);margin-bottom:10px;}
+
+  .field-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+  .field{flex:1;min-width:130px;display:flex;flex-direction:column;gap:4px;}
+  .field label{font-size:.75rem;color:var(--text-soft);font-weight:600;}
+  .field input,.field select,.field textarea{
+    padding:10px 10px;border:1.5px solid var(--border);border-radius:8px;
+    font-size:1rem;background:#fff;color:var(--text);width:100%;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{
+    outline:none;border-color:var(--accent);
+  }
+  .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .price-grid .field label{font-size:.72rem;}
+  .price-grid .field input{font-weight:700;font-size:1rem;}
+
+  /* ---------- Resumen ---------- */
+  .resumen-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .resumen-item{
+    background:var(--bg);border-radius:8px;padding:8px 10px;
+  }
+  .resumen-item .label{font-size:.7rem;color:var(--text-soft);font-weight:600;text-transform:uppercase;}
+  .resumen-item .value{font-size:1.15rem;font-weight:700;margin-top:2px;}
+  .resumen-item.total{grid-column:1 / -1;background:var(--accent);color:#fff;}
+  .resumen-item.total .label{color:#DCE6FF;}
+  .resumen-item.total .value{font-size:1.5rem;}
+  .resumen-sep{grid-column:1/-1;height:1px;background:var(--border);margin:4px 0;}
+
+  /* ---------- Movil cards ---------- */
+  .movil-card{
+    border:1.5px solid var(--border);
+    background:#fff;
+    border-radius:var(--radius);
+    padding:12px;
+    margin-bottom:10px;
+    transition:background .15s, border-color .15s;
+  }
+  .movil-card.cargado{
+    background:var(--ok-bg);
+    border-color:var(--ok-border);
+  }
+  .movil-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .movil-id{display:flex;flex-direction:column;}
+  .movil-ro{font-size:1.15rem;font-weight:800;}
+  .movil-patente{font-size:.82rem;color:var(--text-soft);font-weight:600;}
+  .movil-badge{
+    font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;
+    padding:3px 8px;border-radius:20px;background:var(--border);color:var(--text-soft);
+    white-space:nowrap;
+  }
+  .movil-card.cargado .movil-badge{background:var(--ok-border);color:#fff;}
+
+  .checkbtn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:14px;margin-top:10px;
+    border-radius:10px;border:1.5px solid var(--border);
+    background:#fff;font-weight:700;font-size:1rem;color:var(--text);
+  }
+  .movil-card.cargado .checkbtn{
+    background:var(--ok-border);border-color:var(--ok-border);color:#fff;
+  }
+  .checkbtn .mark{font-size:1.15rem;}
+
+  .movil-detail{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+  .movil-detail .field{min-width:0;}
+  .movil-detail .field label{font-size:.7rem;}
+  .movil-importe{
+    margin-top:8px;font-size:.85rem;font-weight:700;color:var(--text-soft);
+    display:flex;justify-content:space-between;
+  }
+  .movil-importe span.val{color:var(--text);}
+
+  .obs-field{margin-top:8px;}
+  .obs-field textarea{resize:vertical;min-height:36px;}
+
+  .del-eventual{
+    margin-top:8px;width:100%;padding:9px;border-radius:8px;
+    border:1.5px solid var(--danger);background:var(--danger-bg);color:var(--danger);
+    font-weight:700;font-size:.85rem;
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    padding:13px 16px;border-radius:10px;border:none;font-weight:700;font-size:.95rem;
+  }
+  .btn-primary{background:var(--accent);color:#fff;width:100%;}
+  .btn-outline{background:#fff;color:var(--accent);border:1.5px solid var(--accent);width:100%;}
+  .btn-danger{background:#fff;color:var(--danger);border:1.5px solid var(--danger);width:100%;}
+  .btn-add{
+    background:var(--accent);color:#fff;width:100%;padding:15px;border-radius:10px;
+    font-size:1rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;
+    margin-bottom:14px;
+  }
+  .btn-sm{padding:8px 10px;font-size:.8rem;border-radius:7px;font-weight:700;}
+
+  .actions-bottom{
+    position:fixed;bottom:0;left:0;right:0;
+    background:#fff;border-top:1px solid var(--border);
+    padding:10px 14px;display:flex;gap:10px;z-index:20;
+  }
+  .actions-bottom .btn{flex:1;}
+
+  /* ---------- Base habitual table/cards ---------- */
+  .base-item{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff;
+  }
+  .base-item .info b{font-size:1rem;}
+  .base-item .info div{font-size:.8rem;color:var(--text-soft);}
+  .base-item .btns{display:flex;gap:6px;}
+  .icon-btn{
+    border:1.5px solid var(--border);background:#fff;border-radius:8px;padding:7px 10px;font-size:.85rem;font-weight:700;
+  }
+  .icon-btn.edit{color:var(--accent);border-color:var(--accent);}
+  .icon-btn.del{color:var(--danger);border-color:var(--danger);}
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(15,20,30,.55);z-index:50;
+    align-items:flex-end;justify-content:center;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{
+    background:#fff;width:100%;max-width:560px;border-radius:16px 16px 0 0;
+    padding:18px 16px 20px;max-height:88vh;overflow-y:auto;
+  }
+  @media(min-width:640px){
+    .modal-overlay{align-items:center;}
+    .modal{border-radius:16px;}
+  }
+  .modal h3{font-size:1.05rem;margin-bottom:12px;}
+  .modal .field-row{margin-bottom:10px;}
+  .modal-actions{display:flex;gap:10px;margin-top:14px;}
+  .modal-actions .btn{flex:1;}
+
+  .empty-msg{text-align:center;color:var(--text-soft);padding:24px 10px;font-size:.9rem;}
+
+  .toast{
+    position:fixed;top:70px;left:50%;transform:translateX(-50%);
+    background:var(--text);color:#fff;padding:10px 18px;border-radius:30px;
+    font-size:.85rem;font-weight:600;z-index:100;opacity:0;pointer-events:none;
+    transition:opacity .2s, top .2s;
+  }
+  .toast.show{opacity:1;top:80px;}
+
+  @media(min-width:640px){
+    .movil-detail{grid-template-columns:1fr 1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>⛽ Control de Carga — Móviles Policiales</h1>
+  <div class="sub" id="topbarSub">Cargando...</div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="control">Control del día</button>
+  <button class="tab-btn" data-tab="base">Base de móviles</button>
+</div>
+
+<div class="container">
+
+  <!-- ===================== VISTA CONTROL DEL DIA ===================== -->
+  <div class="view active" id="view-control">
+
+    <div class="panel">
+      <h2>Datos del día</h2>
+      <div class="field-row">
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="inpFecha">
+        </div>
+        <div class="field">
+          <label>Turno (opcional)</label>
+          <input type="text" id="inpTurno" placeholder="Ej: Mañana">
+        </div>
+      </div>
+      <div class="field">
+        <label>Observaciones generales</label>
+        <textarea id="inpObsGenerales" rows="2" placeholder="Notas del turno..."></textarea>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Precios por litro (ARS)</h2>
+      <div class="price-grid">
+        <div class="field">
+          <label>Nafta</label>
+          <input type="number" step="0.01" min="0" id="precioNafta" placeholder="0,00">
+        </div>
+        <div class="field">
+          <label>Gasoil</label>
+          <input type="number" step="0.01" min="0" id="precioGasoil" placeholder="0,00">
+        </div>
+        <div class="field">
+          <label>Nafta Premium</label>
+          <input type="number" step="0.01" min="0" id="precioNaftaPremium" placeholder="0,00">
+        </div>
+        <div class="field">
+          <label>Diésel Premium</label>
+          <input type="number" step="0.01" min="0" id="precioDieselPremium" placeholder="0,00">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Resumen en tiempo real</h2>
+      <div class="resumen-grid" id="resumenGrid"></div>
+    </div>
+
+    <button class="btn-add" id="btnAddEventual">+ Agregar móvil eventual</button>
+
+    <div id="listaMoviles"></div>
+
+    <div style="height:10px;"></div>
+  </div>
+
+  <!-- ===================== VISTA BASE HABITUAL ===================== -->
+  <div class="view" id="view-base">
+    <div class="panel">
+      <h2>Base habitual de móviles</h2>
+      <div id="listaBase"></div>
+      <button class="btn-primary btn" id="btnAddBase" style="margin-top:6px;">+ Agregar móvil habitual</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="actions-bottom">
+  <button class="btn btn-outline" id="btnReiniciar">Reiniciar día</button>
+  <button class="btn btn-primary" id="btnReporte">Cerrar y generar reporte</button>
+</div>
+
+<!-- ===================== MODAL EVENTUAL ===================== -->
+<div class="modal-overlay" id="modalEventual">
+  <div class="modal">
+    <h3>Agregar móvil eventual</h3>
+    <div class="field-row">
+      <div class="field">
+        <label>RO</label>
+        <input type="text" id="evRo" placeholder="Ej: 1234">
+      </div>
+      <div class="field">
+        <label>Patente / Descripción</label>
+        <input type="text" id="evPatente" placeholder="Ej: AB123CD">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Combustible</label>
+        <select id="evCombustible">
+          <option value="Nafta">Nafta</option>
+          <option value="Gasoil">Gasoil</option>
+          <option value="Nafta Premium">Nafta Premium</option>
+          <option value="Diésel Premium">Diésel Premium</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Litros programados</label>
+        <input type="number" step="0.1" min="0" id="evLitrosProg" placeholder="0">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Litros realmente cargados</label>
+        <input type="number" step="0.1" min="0" id="evLitrosReal" placeholder="0">
+      </div>
+    </div>
+    <div class="field">
+      <label>Observaciones</label>
+      <textarea id="evObs" rows="2"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="evCancelar">Cancelar</button>
+      <button class="btn btn-primary" id="evGuardar">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL BASE (agregar/editar) ===================== -->
+<div class="modal-overlay" id="modalBase">
+  <div class="modal">
+    <h3 id="modalBaseTitulo">Agregar móvil habitual</h3>
+    <input type="hidden" id="baseId">
+    <div class="field-row">
+      <div class="field">
+        <label>RO</label>
+        <input type="text" id="baseRo" placeholder="Ej: 1234">
+      </div>
+      <div class="field">
+        <label>Patente / Descripción</label>
+        <input type="text" id="basePatente" placeholder="Ej: AB123CD">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Combustible habitual</label>
+        <select id="baseCombustible">
+          <option value="Nafta">Nafta</option>
+          <option value="Gasoil">Gasoil</option>
+          <option value="Sin definir">Sin definir</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Litros programados/habituales</label>
+        <input type="number" step="0.1" min="0" id="baseLitros" placeholder="0">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="baseCancelar">Cancelar</button>
+      <button class="btn btn-primary" id="baseGuardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     PERSISTENCIA
+  ============================================================ */
+  const LS_BASE = "cc_baseMoviles";
+  const LS_PRECIOS = "cc_precios";
+  const LS_CONTROL = "cc_control";
+
+  function todayISO(){
+    const d = new Date();
+    const off = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - off*60000);
+    return local.toISOString().slice(0,10);
+  }
+
+  function uid(){
+    return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+  }
+
+  function loadJSON(key, fallback){
+    try{
+      const raw = localStorage.getItem(key);
+      if(!raw) return fallback;
+      return JSON.parse(raw);
+    }catch(e){
+      console.error("Error leyendo", key, e);
+      return fallback;
+    }
+  }
+  function saveJSON(key, val){
+    try{
+      localStorage.setItem(key, JSON.stringify(val));
+    }catch(e){
+      console.error("Error guardando", key, e);
+      showToast("No se pudo guardar (almacenamiento lleno o bloqueado)");
+    }
+  }
+
+  /* ============================================================
+     ESTADO
+  ============================================================ */
+  const BASE_PRECARGADA = [
+    {id:'ro_29051', ro:'29051', patente:'AF-128-FK', combustible:'Sin definir', litros:10},
+    {id:'ro_31090', ro:'31090', patente:'AF-653-XH (S/c)', combustible:'Sin definir', litros:10},
+    {id:'ro_31103', ro:'31103', patente:'AF-653-XE', combustible:'Sin definir', litros:10},
+    {id:'ro_31104', ro:'31104', patente:'AF-653-XA', combustible:'Sin definir', litros:0},
+    {id:'ro_31108', ro:'31108', patente:'AF-653-XF', combustible:'Sin definir', litros:10},
+    {id:'ro_31112', ro:'31112', patente:'AF-679-KH', combustible:'Sin definir', litros:15},
+    {id:'ro_31114', ro:'31114', patente:'AF-679-KO', combustible:'Sin definir', litros:10},
+    {id:'ro_31117', ro:'31117', patente:'AF-679-KN', combustible:'Sin definir', litros:0},
+    {id:'ro_31119', ro:'31119', patente:'AF-679-KA', combustible:'Sin definir', litros:10},
+    {id:'ro_31734', ro:'31734', patente:'AF-912-UI', combustible:'Sin definir', litros:8},
+    {id:'ro_32773', ro:'32773', patente:'AG-035-PN', combustible:'Sin definir', litros:8},
+    {id:'ro_32801', ro:'32801', patente:'AG-042-JE', combustible:'Sin definir', litros:8},
+    {id:'ro_32806_27548', ro:'32806/27548', patente:'Ranger/Focus Departamental', combustible:'Sin definir', litros:20},
+    {id:'ro_32808', ro:'32808', patente:'AG-042-JX', combustible:'Sin definir', litros:8},
+    {id:'ro_33903', ro:'33903', patente:'AH-152-DB (no tiene R.O. y/o ptte. colocada)', combustible:'Sin definir', litros:8},
+    {id:'ro_hilux', ro:'Hilux', patente:'Departamental', combustible:'Sin definir', litros:20}
+  ];
+  let baseMoviles = loadJSON(LS_BASE, BASE_PRECARGADA); // [{id, ro, patente, combustible, litros}]
+  let precios = loadJSON(LS_PRECIOS, { nafta:0, gasoil:0, naftaPremium:0, dieselPremium:0 });
+  let control = loadJSON(LS_CONTROL, null);
+
+  function nuevoControlVacio(){
+    return {
+      fecha: todayISO(),
+      turno: "",
+      observaciones: "",
+      registros: {},   // { [baseId]: {cargado, combustible, litrosReales, observaciones} }
+      eventuales: []    // [{id, ro, patente, combustible, litrosProgramados, litrosReales, cargado, observaciones}]
+    };
+  }
+  if(!control){
+    control = nuevoControlVacio();
+  }
+  // asegurar que todo movil habitual tenga registro del día
+  function sincronizarRegistros(){
+    baseMoviles.forEach(m=>{
+      if(!control.registros[m.id]){
+        control.registros[m.id] = {
+          cargado:false,
+          combustible:m.combustible === 'Sin definir' ? 'Nafta' : m.combustible,
+          litrosReales:0,
+          observaciones:""
+        };
+      }
+    });
+  }
+  sincronizarRegistros();
+
+  function persistAll(){
+    saveJSON(LS_BASE, baseMoviles);
+    saveJSON(LS_PRECIOS, precios);
+    saveJSON(LS_CONTROL, control);
+  }
+
+  /* ============================================================
+     UTILIDADES
+  ============================================================ */
+  function fmtARS(n){
+    return (n||0).toLocaleString('es-AR', {style:'currency', currency:'ARS', minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function fmtLitros(n){
+    return (n||0).toLocaleString('es-AR', {minimumFractionDigits:1, maximumFractionDigits:2});
+  }
+  function precioDe(combustible){
+    switch(combustible){
+      case 'Nafta': return precios.nafta;
+      case 'Gasoil': return precios.gasoil;
+      case 'Nafta Premium': return precios.naftaPremium;
+      case 'Diésel Premium': return precios.dieselPremium;
+      default: return 0;
+    }
+  }
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  let toastTimer=null;
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  /* ============================================================
+     TABS
+  ============================================================ */
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('view-' + btn.dataset.tab).classList.add('active');
+      if(btn.dataset.tab === 'base') renderBase();
+    });
+  });
+
+  /* ============================================================
+     HEADER: fecha / turno / observaciones / precios
+  ============================================================ */
+  const inpFecha = document.getElementById('inpFecha');
+  const inpTurno = document.getElementById('inpTurno');
+  const inpObsGenerales = document.getElementById('inpObsGenerales');
+  const precioNafta = document.getElementById('precioNafta');
+  const precioGasoil = document.getElementById('precioGasoil');
+  const precioNaftaPremium = document.getElementById('precioNaftaPremium');
+  const precioDieselPremium = document.getElementById('precioDieselPremium');
+
+  function cargarHeaderDesdeEstado(){
+    inpFecha.value = control.fecha || todayISO();
+    inpTurno.value = control.turno || "";
+    inpObsGenerales.value = control.observaciones || "";
+    precioNafta.value = precios.nafta || "";
+    precioGasoil.value = precios.gasoil || "";
+    precioNaftaPremium.value = precios.naftaPremium || "";
+    precioDieselPremium.value = precios.dieselPremium || "";
+  }
+
+  inpFecha.addEventListener('change', ()=>{ control.fecha = inpFecha.value; persistAll(); actualizarTopbar(); });
+  inpTurno.addEventListener('input', ()=>{ control.turno = inpTurno.value; persistAll(); });
+  inpObsGenerales.addEventListener('input', ()=>{ control.observaciones = inpObsGenerales.value; persistAll(); });
+
+  [['nafta',precioNafta],['gasoil',precioGasoil],['naftaPremium',precioNaftaPremium],['dieselPremium',precioDieselPremium]]
+  .forEach(([key,el])=>{
+    el.addEventListener('input', ()=>{
+      precios[key] = parseFloat(el.value) || 0;
+      persistAll();
+      renderResumen();
+      renderMoviles(); // importes por movil dependen del precio
+    });
+  });
+
+  function actualizarTopbar(){
+    const sub = document.getElementById('topbarSub');
+    const f = control.fecha ? new Date(control.fecha+'T00:00:00').toLocaleDateString('es-AR') : '';
+    sub.textContent = f + (control.turno ? ' · Turno: ' + control.turno : '');
+  }
+
+  /* ============================================================
+     RESUMEN EN TIEMPO REAL
+  ============================================================ */
+  function calcularResumen(){
+    let atendidos=0, pendientes=0, litrosProgramados=0;
+    let realNafta=0, realGasoil=0, realNaftaPremium=0, realDieselPremium=0;
+
+    baseMoviles.forEach(m=>{
+      const r = control.registros[m.id];
+      if(!r) return;
+      litrosProgramados += Number(m.litros)||0;
+      if(r.cargado) atendidos++; else pendientes++;
+      if(r.cargado){
+        sumarPorCombustible(r.combustible, Number(r.litrosReales)||0);
+      }
+    });
+    control.eventuales.forEach(ev=>{
+      litrosProgramados += Number(ev.litrosProgramados)||0;
+      if(ev.cargado) atendidos++; else pendientes++;
+      if(ev.cargado){
+        sumarPorCombustible(ev.combustible, Number(ev.litrosReales)||0);
+      }
+    });
+
+    function sumarPorCombustible(c, litros){
+      if(c==='Nafta') realNafta+=litros;
+      else if(c==='Gasoil') realGasoil+=litros;
+      else if(c==='Nafta Premium') realNaftaPremium+=litros;
+      else if(c==='Diésel Premium') realDieselPremium+=litros;
+    }
+
+    const totalLitros = realNafta+realGasoil+realNaftaPremium+realDieselPremium;
+    const importeNafta = realNafta*precios.nafta;
+    const importeGasoil = realGasoil*precios.gasoil;
+    const importeNaftaPremium = realNaftaPremium*precios.naftaPremium;
+    const importeDieselPremium = realDieselPremium*precios.dieselPremium;
+    const importeTotal = importeNafta+importeGasoil+importeNaftaPremium+importeDieselPremium;
+
+    return {atendidos, pendientes, litrosProgramados, realNafta, realGasoil, realNaftaPremium, realDieselPremium,
+      totalLitros, importeNafta, importeGasoil, importeNaftaPremium, importeDieselPremium, importeTotal};
+  }
+
+  function renderResumen(){
+    const r = calcularResumen();
+    const grid = document.getElementById('resumenGrid');
+    grid.innerHTML = `
+      <div class="resumen-item"><div class="label">Atendidos</div><div class="value">${r.atendidos}</div></div>
+      <div class="resumen-item"><div class="label">Pendientes</div><div class="value">${r.pendientes}</div></div>
+      <div class="resumen-item"><div class="label">Litros programados</div><div class="value">${fmtLitros(r.litrosProgramados)} L</div></div>
+      <div class="resumen-item"><div class="label">Total litros cargados</div><div class="value">${fmtLitros(r.totalLitros)} L</div></div>
+      <div class="resumen-sep"></div>
+      <div class="resumen-item"><div class="label">Nafta</div><div class="value">${fmtLitros(r.realNafta)} L</div></div>
+      <div class="resumen-item"><div class="label">Importe Nafta</div><div class="value">${fmtARS(r.importeNafta)}</div></div>
+      <div class="resumen-item"><div class="label">Gasoil</div><div class="value">${fmtLitros(r.realGasoil)} L</div></div>
+      <div class="resumen-item"><div class="label">Importe Gasoil</div><div class="value">${fmtARS(r.importeGasoil)}</div></div>
+      <div class="resumen-item"><div class="label">Nafta Premium</div><div class="value">${fmtLitros(r.realNaftaPremium)} L</div></div>
+      <div class="resumen-item"><div class="label">Importe N. Premium</div><div class="value">${fmtARS(r.importeNaftaPremium)}</div></div>
+      <div class="resumen-item"><div class="label">Diésel Premium</div><div class="value">${fmtLitros(r.realDieselPremium)} L</div></div>
+      <div class="resumen-item"><div class="label">Importe D. Premium</div><div class="value">${fmtARS(r.importeDieselPremium)}</div></div>
+      <div class="resumen-item total"><div class="label">Importe total general</div><div class="value">${fmtARS(r.importeTotal)}</div></div>
+    `;
+  }
+
+  /* ============================================================
+     LISTA DE MOVILES (habituales + eventuales)
+  ============================================================ */
+  const listaMovilesEl = document.getElementById('listaMoviles');
+
+  function renderMoviles(){
+    let html = "";
+
+    if(baseMoviles.length===0 && control.eventuales.length===0){
+      listaMovilesEl.innerHTML = `<div class="empty-msg">No hay móviles cargados en la base. Andá a la pestaña "Base de móviles" para agregar los habituales.</div>`;
+      return;
+    }
+
+    baseMoviles.forEach(m=>{
+      const r = control.registros[m.id];
+      if(!r) return;
+      html += movilCardHTML({
+        key:'base:'+m.id, ro:m.ro, patente:m.patente,
+        combustible:r.combustible, litrosProgramados:m.litros,
+        litrosReales:r.litrosReales, cargado:r.cargado, observaciones:r.observaciones,
+        esEventual:false
+      });
+    });
+
+    control.eventuales.forEach(ev=>{
+      html += movilCardHTML({
+        key:'ev:'+ev.id, ro:ev.ro, patente:ev.patente,
+        combustible:ev.combustible, litrosProgramados:ev.litrosProgramados,
+        litrosReales:ev.litrosReales, cargado:ev.cargado, observaciones:ev.observaciones,
+        esEventual:true
+      });
+    });
+
+    listaMovilesEl.innerHTML = html;
+    bindMovilCardEvents();
+  }
+
+  function combustibleOptions(actual, esEventual){
+    const opciones = esEventual
+      ? ['Nafta','Gasoil','Nafta Premium','Diésel Premium']
+      : ['Nafta','Gasoil'];
+    return opciones.map(o=>`<option value="${o}" ${o===actual?'selected':''}>${o}</option>`).join('');
+  }
+
+  function movilCardHTML(d){
+    const importe = (Number(d.litrosReales)||0) * precioDe(d.combustible);
+    return `
+    <div class="movil-card ${d.cargado?'cargado':''}" data-key="${esc(d.key)}">
+      <div class="movil-top">
+        <div class="movil-id">
+          <div class="movil-ro">RO ${esc(d.ro)}</div>
+          <div class="movil-patente">${esc(d.patente || '—')}</div>
+        </div>
+        <div class="movil-badge">${d.cargado?'Cargado':'Pendiente'}</div>
+      </div>
+
+      <button class="checkbtn js-toggle" type="button">
+        <span class="mark">${d.cargado?'✓':'○'}</span>
+        <span>${d.cargado ? 'Vino a cargar' : 'Marcar como cargado'}</span>
+      </button>
+
+      <div class="movil-detail">
+        <div class="field">
+          <label>Combustible</label>
+          <select class="js-combustible">${combustibleOptions(d.combustible, d.esEventual)}</select>
+        </div>
+        <div class="field">
+          <label>Litros programados</label>
+          <input type="number" step="0.1" min="0" class="js-litros-prog" value="${d.litrosProgramados!=null?d.litrosProgramados:0}">
+        </div>
+        <div class="field">
+          <label>Litros realmente cargados</label>
+          <input type="number" step="0.1" min="0" class="js-litros-real" value="${d.litrosReales!=null?d.litrosReales:0}">
+        </div>
+      </div>
+
+      <div class="movil-importe">
+        <span>Importe</span>
+        <span class="val js-importe">${fmtARS(importe)}</span>
+      </div>
+
+      <div class="obs-field">
+        <label style="font-size:.7rem;color:var(--text-soft);font-weight:600;">Observaciones</label>
+        <textarea class="js-obs" rows="1" placeholder="Opcional...">${esc(d.observaciones||'')}</textarea>
+      </div>
+
+      ${d.esEventual ? `<button class="del-eventual js-del-eventual" type="button">Eliminar móvil eventual</button>` : ''}
+    </div>`;
+  }
+
+  function parseKey(key){
+    const [tipo, id] = key.split(':');
+    return {tipo, id};
+  }
+  function getRegistro(key){
+    const {tipo,id} = parseKey(key);
+    if(tipo==='base') return control.registros[id];
+    return control.eventuales.find(e=>e.id===id);
+  }
+  function getProgramado(key){
+    const {tipo,id} = parseKey(key);
+    if(tipo==='base'){
+      const m = baseMoviles.find(x=>x.id===id);
+      return m ? m.litros : 0;
+    }else{
+      const ev = control.eventuales.find(e=>e.id===id);
+      return ev ? ev.litrosProgramados : 0;
+    }
+  }
+  function setProgramado(key, val){
+    const {tipo,id} = parseKey(key);
+    if(tipo==='base'){
+      const m = baseMoviles.find(x=>x.id===id);
+      if(m) m.litros = val;
+    }else{
+      const ev = control.eventuales.find(e=>e.id===id);
+      if(ev) ev.litrosProgramados = val;
+    }
+  }
+
+  function bindMovilCardEvents(){
+    document.querySelectorAll('.movil-card').forEach(card=>{
+      const key = card.dataset.key;
+      const reg = getRegistro(key);
+      if(!reg) return;
+
+      card.querySelector('.js-toggle').addEventListener('click', ()=>{
+        const wasOff = !reg.cargado;
+        reg.cargado = !reg.cargado;
+        if(wasOff && (!reg.litrosReales || reg.litrosReales===0)){
+          // al marcar como cargado, copiar litros programados como litros reales por defecto
+          reg.litrosReales = Number(getProgramado(key))||0;
+        }
+        persistAll();
+        renderMoviles();
+        renderResumen();
+      });
+
+      card.querySelector('.js-combustible').addEventListener('change', (e)=>{
+        reg.combustible = e.target.value;
+        persistAll();
+        renderMoviles();
+        renderResumen();
+      });
+
+      card.querySelector('.js-litros-prog').addEventListener('input', (e)=>{
+        setProgramado(key, parseFloat(e.target.value)||0);
+        persistAll();
+        renderResumen();
+      });
+
+      card.querySelector('.js-litros-real').addEventListener('input', (e)=>{
+        reg.litrosReales = parseFloat(e.target.value)||0;
+        persistAll();
+        const importe = reg.litrosReales * precioDe(reg.combustible);
+        card.querySelector('.js-importe').textContent = fmtARS(importe);
+        renderResumen();
+      });
+
+      card.querySelector('.js-obs').addEventListener('input', (e)=>{
+        reg.observaciones = e.target.value;
+        persistAll();
+      });
+
+      const delBtn = card.querySelector('.js-del-eventual');
+      if(delBtn){
+        delBtn.addEventListener('click', ()=>{
+          const {id} = parseKey(key);
+          if(confirm('¿Eliminar este móvil eventual del control del día?')){
+            control.eventuales = control.eventuales.filter(e=>e.id!==id);
+            persistAll();
+            renderMoviles();
+            renderResumen();
+          }
+        });
+      }
+    });
+  }
+
+  /* ============================================================
+     MODAL EVENTUAL
+  ============================================================ */
+  const modalEventual = document.getElementById('modalEventual');
+  document.getElementById('btnAddEventual').addEventListener('click', ()=>{
+    document.getElementById('evRo').value='';
+    document.getElementById('evPatente').value='';
+    document.getElementById('evCombustible').value='Nafta';
+    document.getElementById('evLitrosProg').value='';
+    document.getElementById('evLitrosReal').value='';
+    document.getElementById('evObs').value='';
+    modalEventual.classList.add('open');
+  });
+  document.getElementById('evCancelar').addEventListener('click', ()=> modalEventual.classList.remove('open'));
+  modalEventual.addEventListener('click', (e)=>{ if(e.target===modalEventual) modalEventual.classList.remove('open'); });
+
+  document.getElementById('evGuardar').addEventListener('click', ()=>{
+    const ro = document.getElementById('evRo').value.trim();
+    const patente = document.getElementById('evPatente').value.trim();
+    if(!ro){ showToast('Ingresá el RO del móvil'); return; }
+    const ev = {
+      id: uid(),
+      ro, patente,
+      combustible: document.getElementById('evCombustible').value,
+      litrosProgramados: parseFloat(document.getElementById('evLitrosProg').value)||0,
+      litrosReales: parseFloat(document.getElementById('evLitrosReal').value)||0,
+      cargado: (parseFloat(document.getElementById('evLitrosReal').value)||0) > 0,
+      observaciones: document.getElementById('evObs').value.trim()
+    };
+    control.eventuales.push(ev);
+    persistAll();
+    modalEventual.classList.remove('open');
+    renderMoviles();
+    renderResumen();
+    showToast('Móvil eventual agregado');
+  });
+
+  /* ============================================================
+     BASE HABITUAL: listado + alta/edición/baja
+  ============================================================ */
+  const listaBaseEl = document.getElementById('listaBase');
+
+  function renderBase(){
+    if(baseMoviles.length===0){
+      listaBaseEl.innerHTML = `<div class="empty-msg">Todavía no cargaste móviles habituales.</div>`;
+      return;
+    }
+    listaBaseEl.innerHTML = baseMoviles.map(m=>`
+      <div class="base-item" data-id="${esc(m.id)}">
+        <div class="info">
+          <b>RO ${esc(m.ro)}</b>
+          <div>${esc(m.patente||'—')} · ${esc(m.combustible)} · ${fmtLitros(m.litros)} L</div>
+        </div>
+        <div class="btns">
+          <button class="icon-btn edit js-edit-base" type="button">Editar</button>
+          <button class="icon-btn del js-del-base" type="button">Eliminar</button>
+        </div>
+      </div>
+    `).join('');
+
+    listaBaseEl.querySelectorAll('.js-edit-base').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        const id = e.target.closest('.base-item').dataset.id;
+        abrirModalBase(id);
+      });
+    });
+    listaBaseEl.querySelectorAll('.js-del-base').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        const id = e.target.closest('.base-item').dataset.id;
+        const m = baseMoviles.find(x=>x.id===id);
+        if(confirm(`¿Eliminar el móvil RO ${m.ro} de la base habitual? Esta acción no se puede deshacer.`)){
+          baseMoviles = baseMoviles.filter(x=>x.id!==id);
+          delete control.registros[id];
+          persistAll();
+          renderBase();
+          renderMoviles();
+          renderResumen();
+          showToast('Móvil eliminado de la base');
+        }
+      });
+    });
+  }
+
+  const modalBase = document.getElementById('modalBase');
+  function abrirModalBase(id){
+    document.getElementById('baseId').value = id || '';
+    if(id){
+      const m = baseMoviles.find(x=>x.id===id);
+      document.getElementById('modalBaseTitulo').textContent = 'Editar móvil habitual';
+      document.getElementById('baseRo').value = m.ro;
+      document.getElementById('basePatente').value = m.patente;
+      document.getElementById('baseCombustible').value = m.combustible;
+      document.getElementById('baseLitros').value = m.litros;
+    }else{
+      document.getElementById('modalBaseTitulo').textContent = 'Agregar móvil habitual';
+      document.getElementById('baseRo').value='';
+      document.getElementById('basePatente').value='';
+      document.getElementById('baseCombustible').value='Nafta';
+      document.getElementById('baseLitros').value='';
+    }
+    modalBase.classList.add('open');
+  }
+  document.getElementById('btnAddBase').addEventListener('click', ()=> abrirModalBase(null));
+  document.getElementById('baseCancelar').addEventListener('click', ()=> modalBase.classList.remove('open'));
+  modalBase.addEventListener('click', (e)=>{ if(e.target===modalBase) modalBase.classList.remove('open'); });
+
+  document.getElementById('baseGuardar').addEventListener('click', ()=>{
+    const id = document.getElementById('baseId').value;
+    const ro = document.getElementById('baseRo').value.trim();
+    const patente = document.getElementById('basePatente').value.trim();
+    const combustible = document.getElementById('baseCombustible').value;
+    const litros = parseFloat(document.getElementById('baseLitros').value)||0;
+    if(!ro){ showToast('Ingresá el RO del móvil'); return; }
+
+    if(id){
+      const m = baseMoviles.find(x=>x.id===id);
+      m.ro=ro; m.patente=patente; m.combustible=combustible; m.litros=litros;
+    }else{
+      const nuevo = {id:uid(), ro, patente, combustible, litros};
+      baseMoviles.push(nuevo);
+      control.registros[nuevo.id] = {
+        cargado:false,
+        combustible: combustible==='Sin definir' ? 'Nafta' : combustible,
+        litrosReales:0,
+        observaciones:""
+      };
+    }
+    persistAll();
+    modalBase.classList.remove('open');
+    renderBase();
+    renderMoviles();
+    renderResumen();
+    showToast('Base actualizada');
+  });
+
+  /* ============================================================
+     REINICIAR DIA
+  ============================================================ */
+  document.getElementById('btnReiniciar').addEventListener('click', ()=>{
+    if(!confirm('¿Reiniciar el control del día? Se borrarán las marcas de carga, litros reales, móviles eventuales y observaciones del turno. La base de móviles habituales NO se modifica.')) return;
+    control = nuevoControlVacio();
+    sincronizarRegistros();
+    persistAll();
+    cargarHeaderDesdeEstado();
+    actualizarTopbar();
+    renderMoviles();
+    renderResumen();
+    showToast('Control del día reiniciado');
+  });
+
+  /* ============================================================
+     GENERAR REPORTE XLSX
+  ============================================================ */
+  document.getElementById('btnReporte').addEventListener('click', generarReporte);
+
+  function filasDetalle(){
+    const filas = [];
+    const header = ['Fecha','Turno','RO','Patente/Descripción','Combustible','Litros programados','Litros cargados','Precio por litro','Importe','Estado','Observaciones'];
+    filas.push(header);
+
+    baseMoviles.forEach(m=>{
+      const r = control.registros[m.id];
+      if(!r) return;
+      const precio = precioDe(r.combustible);
+      const importe = (Number(r.litrosReales)||0) * precio;
+      filas.push([
+        control.fecha, control.turno||'', m.ro, m.patente||'', r.combustible,
+        Number(m.litros)||0, Number(r.litrosReales)||0, precio, importe,
+        r.cargado?'Cargado':'Pendiente', r.observaciones||''
+      ]);
+    });
+
+    control.eventuales.forEach(ev=>{
+      const precio = precioDe(ev.combustible);
+      const importe = (Number(ev.litrosReales)||0) * precio;
+      filas.push([
+        control.fecha, control.turno||'', ev.ro, ev.patente||'', ev.combustible,
+        Number(ev.litrosProgramados)||0, Number(ev.litrosReales)||0, precio, importe,
+        ev.cargado?'Cargado':'Pendiente', ev.observaciones||''
+      ]);
+    });
+
+    return filas;
+  }
+
+  function filasResumen(){
+    const r = calcularResumen();
+    const filas = [];
+    filas.push(['Control de carga de combustible']);
+    filas.push(['Fecha', control.fecha]);
+    filas.push(['Turno', control.turno||'']);
+    filas.push(['Observaciones generales', control.observaciones||'']);
+    filas.push([]);
+    filas.push(['Combustible','Litros','Precio por litro','Importe']);
+    filas.push(['Nafta', r.realNafta, precios.nafta, r.importeNafta]);
+    filas.push(['Gasoil', r.realGasoil, precios.gasoil, r.importeGasoil]);
+    filas.push(['Nafta Premium', r.realNaftaPremium, precios.naftaPremium, r.importeNaftaPremium]);
+    filas.push(['Diésel Premium', r.realDieselPremium, precios.dieselPremium, r.importeDieselPremium]);
+    filas.push([]);
+    filas.push(['Total litros cargados', r.totalLitros]);
+    filas.push(['Total monetario', r.importeTotal]);
+    filas.push([]);
+    filas.push(['Móviles atendidos', r.atendidos]);
+    filas.push(['Móviles pendientes', r.pendientes]);
+    filas.push(['Litros programados (total)', r.litrosProgramados]);
+    return filas;
+  }
+
+  function aplicarFormatosDetalle(ws, cantFilas){
+    // columnas: A Fecha,B Turno,C RO,D Patente,E Combustible,F LitrosProg,G LitrosCargados,H Precio,I Importe,J Estado,K Obs
+    for(let i=2;i<=cantFilas+1;i++){
+      const f = ws['F'+i]; if(f) f.z = '#,##0.0';
+      const g = ws['G'+i]; if(g) g.z = '#,##0.0';
+      const h = ws['H'+i]; if(h) h.z = '"$"#,##0.00';
+      const im = ws['I'+i]; if(im) im.z = '"$"#,##0.00';
+    }
+    ws['!cols'] = [
+      {wch:11},{wch:10},{wch:8},{wch:18},{wch:15},{wch:12},{wch:12},{wch:12},{wch:13},{wch:10},{wch:28}
+    ];
+  }
+
+  function aplicarFormatosResumen(ws){
+    // filas fijas conocidas: 7-10 = combustibles, col B litros, C precio, D importe
+    for(let i=7;i<=10;i++){
+      const b = ws['B'+i]; if(b) b.z = '#,##0.0';
+      const c = ws['C'+i]; if(c) c.z = '"$"#,##0.00';
+      const d = ws['D'+i]; if(d) d.z = '"$"#,##0.00';
+    }
+    const totLitros = ws['B12']; if(totLitros) totLitros.z = '#,##0.0';
+    const totMonto = ws['B13']; if(totMonto) totMonto.z = '"$"#,##0.00';
+    ws['!cols'] = [{wch:26},{wch:16},{wch:16},{wch:16}];
+  }
+
+  function generarReporte(){
+    if(typeof XLSX === 'undefined'){
+      showToast('No se pudo cargar el generador de Excel (sin conexión a internet)');
+      return;
+    }
+    const detalle = filasDetalle();
+    const resumen = filasResumen();
+
+    const wb = XLSX.utils.book_new();
+    const wsDetalle = XLSX.utils.aoa_to_sheet(detalle);
+    aplicarFormatosDetalle(wsDetalle, detalle.length-1);
+    const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
+    aplicarFormatosResumen(wsResumen);
+
+    XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+
+    const nombreArchivo = `control-combustible_${control.fecha||todayISO()}${control.turno?('_'+control.turno.replace(/\s+/g,'-')):''}.xlsx`;
+    XLSX.writeFile(wb, nombreArchivo);
+    showToast('Reporte descargado');
+  }
+
+  /* ============================================================
+     INICIALIZACION
+  ============================================================ */
+  cargarHeaderDesdeEstado();
+  actualizarTopbar();
+  renderResumen();
+  renderMoviles();
+  renderBase();
+
+})();
+</script>
+</body>
+</html>
