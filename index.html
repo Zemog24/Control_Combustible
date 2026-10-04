@@ -1049,6 +1049,17 @@
     ws['!cols'] = [{wch:26},{wch:16},{wch:16},{wch:16}];
   }
 
+  function descargarBlob(blob, nombreArchivo){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombreArchivo;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  }
+
   function generarReporte(){
     if(typeof XLSX === 'undefined'){
       showToast('No se pudo cargar el generador de Excel (sin conexión a internet)');
@@ -1067,8 +1078,38 @@
     XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
 
     const nombreArchivo = `control-combustible_${control.fecha||todayISO()}${control.turno?('_'+control.turno.replace(/\s+/g,'-')):''}.xlsx`;
-    XLSX.writeFile(wb, nombreArchivo);
-    showToast('Reporte descargado');
+    const tipoMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const blob = new Blob([wbout], {type:tipoMime});
+
+    // En celulares con soporte de compartir nativo (Android/Chrome, la mayoría de iOS),
+    // se abre el selector del sistema (WhatsApp, Mail, Drive, etc.) con el archivo ya adjunto.
+    // Si no hay soporte, o el usuario cancela, se descarga el archivo como siempre.
+    let compartido = false;
+    try{
+      const file = new File([blob], nombreArchivo, {type:tipoMime});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        compartido = true;
+        navigator.share({
+          files:[file],
+          title:'Control de combustible',
+          text:'Reporte de carga de combustible' + (control.fecha ? (' - ' + control.fecha) : '')
+        }).then(()=>{
+          showToast('Reporte compartido');
+        }).catch((err)=>{
+          if(err && err.name === 'AbortError') return; // el usuario canceló el selector, no hacemos nada más
+          descargarBlob(blob, nombreArchivo);
+          showToast('Reporte descargado');
+        });
+      }
+    }catch(e){
+      compartido = false;
+    }
+
+    if(!compartido){
+      descargarBlob(blob, nombreArchivo);
+      showToast('Reporte descargado');
+    }
   }
 
   /* ============================================================
